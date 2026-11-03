@@ -44,8 +44,8 @@ def main() -> None:
         from .web_geometry import worker
         worker(sys.argv[2], sys.argv[3])
         return
-    ap = argparse.ArgumentParser(description="cadview: local browser-based Altium and KiCad PCB and schematic viewer")
-    ap.add_argument("documents", nargs="*", type=Path, help="Altium or KiCad documents to open in tabs")
+    ap = argparse.ArgumentParser(description="cadview: local browser-based Altium and KiCad PCB and schematic viewer, with STEP, SolidWorks and 3D PDF models")
+    ap.add_argument("documents", nargs="*", type=Path, help="Altium, KiCad, SolidWorks or 3D PDF documents to open in tabs")
     ap.add_argument("--web", action="store_true", help="compatibility option; the browser viewer is now the default")
     ap.add_argument("--port", type=int, default=None, help="local server port (default: random free port)")
     ap.add_argument("--browser", default=None, help="browser to use: chrome (default), firefox, safari, default, ...")

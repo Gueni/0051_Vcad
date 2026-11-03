@@ -73,7 +73,7 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
     status.textContent = layoutGPU?.lost && board?.gpuScene ? 'SVG: graphics context lost; waiting for recovery.' : board?.gpuStatus || 'SVG';
   }
   async function prepareGPU(board, data) {
-    if (data.kind === 'schematic' || !data.webgl || gpuUnavailable) return;
+    if ((data.kind || 'pcb') !== 'pcb' || !data.webgl || gpuUnavailable) return;
     const controller = new AbortController(); board.gpuController = controller;
     const generation = board.request;
     board.gpuStatus = 'Starting WebGL…';
@@ -283,12 +283,8 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
         renderStepBoard(board);
         continue;
       }
-      if (['sldprt', 'sldasm', 'pdf'].includes(extension)) {
-        const format = extension === 'pdf' ? '3D PDF' : 'SolidWorks';
-        toast(`${file.name}: ${format} files cannot be opened in cadview yet. Export the model as STEP to view it here.`);
-        continue;
-      }
       const board = createBoard(file);
+      if (['sldprt', 'sldasm', 'pdf'].includes(extension)) board.mode = '3d';
       activateBoard(board);
       renderBoard(board);
     }
@@ -586,7 +582,7 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
       list.scrollTop = scroll;
       const count = list.options.length;
       $('three-summary').textContent = activeBoard.scene3d.standalone ?
-        `${count} ${count === 1 ? 'STEP model' : 'STEP models'}` :
+        `${count} ${count === 1 ? 'part' : 'parts'}` :
         `${activeBoard.scene3d.thickness.toFixed(2)} mm board · ${count} ${count === 1 ? 'body' : 'bodies'}`;
       $('three-selection').textContent = state.selected.size ?
         `${state.selected.size} selected: ${[...state.selected].map(id => names.get(id)).join(', ')}` : 'No body selected.';

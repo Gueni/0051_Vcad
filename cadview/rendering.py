@@ -139,6 +139,12 @@ def copper_layer_order(pcb: AltiumPcbDoc, *, layer_stack=None) -> list[str]:
 def render_file(path: Path, side: str = "all", clip: bool = False,
                 pour_color: str | None = None, polygon_outlines: bool = False,
                 *, native: bool = False) -> dict:
+    if path.suffix.lower() in (".sldprt", ".sldasm"):
+        from .solidworks import render_solidworks
+        return render_solidworks(path)
+    if path.suffix.lower() == ".pdf":
+        from .pdf3d import render_pdf3d
+        return render_pdf3d(path)
     if path.suffix.lower() == ".kicad_pcb":
         from .kicad_pcb import render_pcb
         return render_pcb(path, side, clip, pour_color, polygon_outlines)
@@ -164,7 +170,8 @@ def render_file(path: Path, side: str = "all", clip: bool = False,
             },
         }
     if path.suffix.lower() != ".pcbdoc":
-        raise ValueError("Open an Altium .PcbDoc or .SchDoc, or a KiCad .kicad_pcb, .kicad_sch, or legacy .sch file.")
+        raise ValueError("Open an Altium .PcbDoc or .SchDoc, a KiCad .kicad_pcb, .kicad_sch, or legacy .sch file, "
+                         "a SolidWorks .sldprt or .sldasm file, or a 3D PDF.")
     pcb = AltiumPcbDoc.from_file(path)
     warnings = prepare_embedded_fonts(pcb)
     resolve_polygon_nets(pcb)
