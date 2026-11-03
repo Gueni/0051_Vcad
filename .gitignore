@@ -1,0 +1,8 @@
+# Python virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+node_modules/
+build/
+dist/
+*.egg-info/

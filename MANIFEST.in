@@ -1,0 +1,2 @@
+recursive-include tests/fixtures *.kicad_pcb *.kicad_sch *.sch
+recursive-include scripts *.py *.spec

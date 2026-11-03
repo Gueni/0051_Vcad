@@ -1,0 +1,152 @@
+
+  :root { color-scheme: dark;
+          --bg: #1b1d21; --panel: #24272c; --line: #3a3e45; --text: #d8dbe0; --muted: #8b909a;
+          --accent: #35c2d8; --accent-ink: #06262b; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+               font: 13px/1.45 "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #app { display: flex; height: 100%; }
+  #panel { width: 270px; flex: none; background: var(--panel); border-right: 1px solid var(--line);
+           display: flex; flex-direction: column; box-sizing: border-box; }
+  #panel > * { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  #panel > :last-child { border-bottom: 0; }
+  #layers-wrap { flex: 1; overflow-y: auto; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+  #filename { color: var(--muted); font-size: 12px; word-break: break-all; min-height: 1.4em; }
+  #warnings { color: #efc578; font-size: 12px; white-space: pre-line; margin-top: 6px; }
+  #component-query { min-width: 0; width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text);
+                     border: 1px solid var(--line); border-radius: 4px; padding: 5px; font: inherit; }
+  #view svg.layout-selection #scene > :not(#component-highlight):not(#net-highlight):not(#layout-holes) { filter: opacity(0.15); }
+  #view svg.hide-polygons .polygon-copper { display: none !important; }
+  button { background: #3a3e45; color: var(--text); border: 1px solid #4a4f58; border-radius: 4px;
+           padding: 5px 8px; cursor: pointer; font: inherit; }
+  button:hover { background: #474c56; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; width: 100%; }
+  button.primary:hover { filter: brightness(1.1); }
+  button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .row { display: flex; gap: 6px; margin-top: 6px; }
+  .row button { flex: 1; }
+  #layers label { display: flex; align-items: center; gap: 6px; padding: 3px 2px; cursor: pointer;
+                  border-radius: 3px; user-select: none; }
+  #layers label:hover { background: #2e3238; }
+  .swatch { width: 12px; height: 12px; border-radius: 2px; flex: none; border: 1px solid #0006; }
+  .count { margin-left: auto; color: var(--muted); font-size: 11px; }
+  #net-query { min-width: 0; width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text);
+                     border: 1px solid var(--line); border-radius: 4px; padding: 5px; font: inherit; }
+  #scene .sch-hit { stroke: transparent; fill: none; stroke-width: 10px; vector-effect: non-scaling-stroke; pointer-events: stroke; }
+  #scene .sch-component-hit { fill: transparent; stroke: none; pointer-events: all; }
+  #schematic-selection-status { white-space: pre-line; overflow-wrap: anywhere; margin-bottom: 6px; }
+  #probe-layout, #probe-schematic { box-sizing: border-box; width: 100%; margin: 4px 0 6px; background: var(--bg); color: var(--text); padding: 4px; }
+  #probe-status, #probe-schematic-status, #probe-result-status { white-space: pre-line; overflow-wrap: anywhere; margin-top: 6px; }
+  #panel { overflow-y: auto; }
+  #panel > * { flex-shrink: 0; }
+  #layers-wrap { min-height: 160px; }
+  #stats { color: var(--muted); font-size: 12px; white-space: pre-line; }
+  #readout { font: 12px/1.5 ui-monospace, Consolas, monospace; color: #bbb; white-space: pre;
+             background: #1b1d21; border-radius: 4px; padding: 6px; margin-top: 6px; min-height: 3.6em; }
+  .hint { color: var(--muted); font-size: 11px; }
+  #workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  #drawing-area { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; container-type: inline-size; }
+  #view-mode-switch { position: absolute; top: 12px; left: 12px; z-index: 5; display: grid;
+    grid-template-columns: 1fr 1fr; align-items: center; width: 104px; max-width: calc(100% - 24px); height: 44px;
+    padding: 0; overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    font-weight: 600; box-shadow: 0 3px 12px #0005; }
+  #view-mode-switch > span { pointer-events: none; }
+  #view-mode-switch .mode-cover { position: absolute; top: 4px; bottom: 4px; left: 4px;
+    width: calc(50% - 4px); border-radius: 4px; background: var(--accent); opacity: 0.9;
+    transform: translateX(100%); transition: transform 160ms ease; }
+  #view-mode-switch[aria-checked="true"] .mode-cover { transform: translateX(0); }
+  #view-mode-switch:hover:not(:disabled) { border-color: #707780; }
+  #view-mode-switch:disabled { opacity: 0.4; cursor: default; }
+  #navigation-toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px;
+    width: max-content; max-width: calc(100% - 16px); padding: 4px; box-sizing: border-box;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 3px 12px #0005; }
+  #navigation-toolbar button { display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; flex: none; padding: 5px; border-color: transparent; border-radius: 6px; background: transparent; }
+  #navigation-toolbar button:hover:not(:disabled) { background: #474c56; }
+  #navigation-toolbar button:disabled { opacity: 0.35; cursor: default; background: transparent; }
+  #navigation-toolbar svg { width: 22px; height: 22px; pointer-events: none; }
+  #three-navigation { position: absolute; bottom: 12px; left: 12px; z-index: 5; display: flex;
+    flex-direction: column; align-items: stretch; gap: 8px; max-width: calc(100% - 24px); pointer-events: none; }
+  .three-presets, .rotation-pad { padding: 4px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; box-shadow: 0 3px 12px #0005; pointer-events: auto; }
+  .three-presets { display: flex; flex-direction: column; gap: 4px; }
+  #three-navigation button { display: flex; align-items: center; justify-content: center; padding: 0;
+    border-color: transparent; background: transparent; }
+  #three-navigation button:hover:not(:disabled) { background: #474c56; }
+  #three-navigation button:disabled { opacity: 0.35; cursor: default; }
+  .three-presets button { min-width: 68px; height: 32px; }
+  .rotation-pad { --step-size: 32px; display: grid; gap: 2px;
+    grid-template-columns: repeat(3, var(--step-size)); grid-template-rows: repeat(3, var(--step-size)); }
+  .rotation-pad button { width: var(--step-size); height: var(--step-size); }
+  .rotation-pad { touch-action: none; user-select: none; }
+  .rotation-pad svg { width: 20px; height: 20px; pointer-events: none; }
+  #three-rotate-up { grid-area: 1 / 2; }
+  #three-rotate-left { grid-area: 2 / 1; }
+  #three-rotate-right { grid-area: 2 / 3; }
+  #three-rotate-down { grid-area: 3 / 2; }
+  @container (max-width: 130px) { .rotation-pad { --step-size: 24px; } }
+  @container (max-width: 370px) { #view-mode-switch:not([hidden]) ~ #navigation-toolbar { top: 64px; } }
+  @media (prefers-reduced-motion: reduce) { #view-mode-switch .mode-cover { transition: none; } }
+  #tabs { display: flex; flex: none; overflow-x: auto; background: var(--panel); border-bottom: 1px solid var(--line); }
+  #tabs:empty { display: none; }
+  .tab { display: flex; align-items: center; flex: none; border-right: 1px solid var(--line); }
+  .tab.active { background: var(--bg); box-shadow: inset 0 2px var(--accent); }
+  .tab button { background: transparent; border: 0; border-radius: 0; }
+  .tab button:hover { background: #474c56; }
+  .tab-name { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 9px 12px; }
+  .tab-close { margin-right: 4px; }
+  #view { flex: 1; min-height: 0; overflow: hidden; cursor: default; position: relative; }
+  #view.pan-ready { cursor: grab; }
+  #view.panning { cursor: grabbing; }
+  #view.selecting { cursor: crosshair; }
+  #selection-rectangle { position: absolute; z-index: 3; pointer-events: none; box-sizing: border-box;
+    border: 2px dashed #008a3b; background: #008a3b18; }
+  #view.measuring, #view.measuring:active { cursor: crosshair; }
+  #view.drop { outline: 3px dashed var(--accent); outline-offset: -3px; }
+  #view svg { width: 100%; height: 100%; display: block; user-select: none; }
+  #empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+           color: var(--muted); font-size: 15px; text-align: center; pointer-events: none; }
+  #measure { pointer-events: none; }
+  #net-labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+                font: 600 12px/16px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .copper-label { position: absolute; color: #fff; font: inherit; white-space: pre;
+               text-shadow: -1px -1px 1px #111, 1px 1px 1px #111, -1px 1px 1px #111, 1px -1px 1px #111;
+               transform: translate(-50%, -50%); pointer-events: none; }
+  .copper-label > span { display: block; text-align: center; }
+  .pin-label { color: #ffe066; }
+  #measure line, #measure circle, #measure path { vector-effect: non-scaling-stroke; stroke: #fff; stroke-width: 3; fill: none; }
+  #measure .selected { stroke-width: 4; }
+  #measure .measurement-axis, #measure .measurement-preview { stroke-dasharray: 8 5; }
+  #measure .measurement-marker circle { fill: var(--bg); }
+  #measure-label { position: absolute; inset: 0; pointer-events: none; }
+  .measure-label { position: absolute; pointer-events: none; background: #1b1d21ed; color: #fff;
+                   font: 600 18.67px ui-monospace, Consolas, monospace; padding: 3px 6px; border-radius: 3px;
+                   transform: translate(-50%, -50%); white-space: nowrap; }
+  #units-toggle { width: 100%; margin-top: 6px; }
+  #layers .layer-name { flex: 1; min-width: 0; text-align: left; border: 0; background: transparent; color: inherit; padding: 2px 0; }
+  #layers .active-layer { background: #35454d; box-shadow: inset 2px 0 var(--accent); }
+  #toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); background: #b23b3b; color: #fff;
+           padding: 8px 14px; border-radius: 6px; display: none; max-width: 70%; }
+  #busy { position: absolute; inset: 0; z-index: 4; background: #0008; display: none; align-items: center; justify-content: center; font-size: 16px; cursor: wait; }
+  #view[aria-busy="true"] > svg { visibility: hidden; }
+  #three-view { position: absolute; inset: 0; touch-action: none; }
+  #three-view canvas { width: 100%; height: 100%; display: block; }
+  #three-status { white-space: pre-line; margin-top: 6px; }
+  #three-summary { margin-top: 6px; }
+  #three-body-list { width: 100%; box-sizing: border-box; margin: 4px 0; background: var(--bg);
+                     color: var(--text); border: 1px solid var(--line); font: inherit; }
+  #three-controls > label { display: block; margin-top: 10px; }
+  #three-selection { overflow-wrap: anywhere; margin-bottom: 6px; }
+  #three-undo { margin-top: 6px; }
+  #three-view canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  [hidden] { display: none !important; }
+.layout-webgl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+#view.gpu-layout > svg { position: relative; z-index: 1; }
+#view.gpu-layout #net-labels, #view.gpu-layout #toast { z-index: 2; }
+#view.gpu-layout #measure-label { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+/* Visibility skips SVG paint traversal during camera changes. The retained
+   source hit modes still test exact fills/strokes; measurements stay visible. */
+#view.gpu-layout > svg #scene { opacity: 0 !important; visibility: hidden; filter: none !important; }
+#view.gpu-layout > svg #scene, #view.gpu-layout > svg #scene * { pointer-events: var(--layout-hit-test, painted) !important; }

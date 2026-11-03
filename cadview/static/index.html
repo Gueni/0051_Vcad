@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>cadview</title>
+<link rel="stylesheet" href="/static/viewer.css"></head><body>
+<div id="app">
+  <div id="panel">
+    <div>
+      <h1>cadview</h1>
+      <input id="file" type="file" accept=".PcbDoc,.pcbdoc,.SchDoc,.schdoc,.kicad_pcb,.kicad_sch,.sch,.step,.stp,.sldprt,.sldasm,.pdf" multiple hidden>
+      <button class="primary" id="open">Open files…</button>
+      <div id="filename">No document loaded</div>
+      <div id="warnings" role="status" hidden></div>
+      <div id="renderer-status" class="hint" role="status" hidden></div>
+    </div>
+    <div id="view-mode" data-pcb-only hidden>
+      <div id="three-controls" hidden>
+        <div class="hint">Click a body to select; Shift-click adds or removes a body. Middle-drag or left-drag to rotate freely. Shift-middle-drag, right-drag or Shift-left-drag to pan. Scroll or pinch to zoom towards the pointer. Double-click a surface to centre rotation there; double-click empty space to fit.</div>
+        <div id="three-summary" class="hint"></div>
+        <input id="step-files" type="file" accept=".step,.stp" multiple hidden>
+        <button id="step-add">Add STEP models…</button>
+        <div id="step-status" class="hint" role="status"></div>
+        <label for="three-body-list">3D bodies</label>
+        <select id="three-body-list" multiple size="5" aria-describedby="three-selection"></select>
+        <div id="three-selection" role="status">No body selected.</div>
+        <div class="row"><button id="three-clear" disabled>Clear</button><button id="three-delete" disabled>Delete selected</button></div>
+        <button id="three-undo" disabled>Undo delete</button>
+        <div class="hint">Delete / Backspace removes selected bodies from this view. Ctrl/Cmd+Z restores the last deletion. Changes stay in this tab for this session; the source file is unchanged.</div>
+      </div>
+      <div id="three-status" class="hint" role="status"></div>
+    </div>
+    <div data-2d-only>
+      <label for="component-query">Find component</label>
+      <input id="component-query" type="search" list="component-options" placeholder="Designator, e.g. R12" title="Search by designator or click a component. Click a selected component again to deselect it. Escape clears the selection." autocomplete="off" disabled>
+      <datalist id="component-options"></datalist>
+      <div class="row"><button id="component-clear">Clear</button><button id="component-fit" disabled>Fit matches</button></div>
+      <button id="component-reveal" hidden>Show matching layers</button>
+      <div id="component-status" class="hint" role="status"></div>
+    </div>
+    <div data-2d-only>
+      <label for="net-query">Find net</label>
+      <input id="net-query" type="search" list="net-options" placeholder="Net name, e.g. GND" autocomplete="off" disabled>
+      <datalist id="net-options"></datalist>
+      <div class="row"><button id="net-clear">Clear</button><button id="net-fit" disabled>Fit matches</button></div>
+      <button id="net-reveal" hidden>Show matching layers</button>
+      <div id="net-status" class="hint" role="status"></div>
+    </div>
+    <div id="layers-wrap" data-pcb-only data-2d-only>
+      <div class="row" style="margin:0 0 6px"><button id="all">Show all</button><button id="none">Hide all</button></div>
+      <button id="polygons-toggle" aria-pressed="false" disabled>Hide polygons</button>
+      <div id="layers"></div>
+    </div>
+    <div data-pcb-only data-2d-only>
+      <div class="row" style="margin:0"><button id="measure-btn">Measure (M)</button>
+        <button data-unit="mm" class="on unit">mm</button><button data-unit="mil" class="unit">mil</button><button data-unit="in" class="unit">in</button></div>
+      <button id="units-toggle" aria-pressed="false" title="Switch metric / imperial units (Q)" disabled>Metric (mm)</button>
+      <div id="readout"></div>
+      <div class="hint">Click copper to select a net; click it again to deselect. Drag a dashed rectangle to select nets and components; Shift-drag adds to the selection. Pan with two-finger scrolling, middle-drag or Space-drag. Pinch or Ctrl+scroll to zoom. F or double-click fits. Measure (M): click two points; hold Command on macOS or Ctrl on Windows/Linux to snap to visible pad/via centres. Click a completed segment for dashed X/Y distances. Q switches metric/imperial. Esc cancels the tool and selection; Shift+C clears measurements.</div>
+    </div>
+    <div id="schematic-selection" hidden>
+      <label>Selection</label>
+      <div id="schematic-selection-status" role="status"></div>
+      <button id="schematic-clear" disabled>Clear selection (Esc)</button>
+      <label for="probe-layout" style="display:block;margin-top:10px">Layout</label>
+      <select id="probe-layout" disabled></select>
+      <button id="probe-layout-btn" disabled>Show in layout</button>
+      <div id="probe-status" class="hint" role="status"></div>
+    </div>
+    <div data-pcb-only data-2d-only>
+      <label for="probe-schematic">Schematic</label>
+      <select id="probe-schematic" disabled></select>
+      <button id="probe-schematic-btn" disabled>Show in schematic</button>
+      <div id="probe-schematic-status" class="hint" role="status"></div>
+    </div>
+    <div id="probe-result" hidden>
+      <div id="probe-result-status" role="status"></div>
+      <button id="probe-back">Back to schematic</button>
+    </div>
+    <div id="schematic-hint" class="hint" hidden>Click a component or net to select it; click it again to deselect it. Shift-click to add to the selection. Esc clears the selection. Drag a dashed rectangle to select nets and components; Shift-drag adds to the selection. Pan with two-finger scrolling, middle-drag or Space-drag. Pinch or Ctrl+scroll to zoom. Double-click to reset.</div>
+    <div id="stats"></div>
+  </div>
+  <div id="workspace">
+    <div id="tabs" role="tablist" aria-label="Open documents"></div>
+    <div id="drawing-area">
+      <button id="view-mode-switch" type="button" role="switch" aria-label="3D view" aria-checked="false" aria-keyshortcuts="2 3" title="Open a PCB layout to switch views" data-pcb-only disabled>
+        <span aria-hidden="true">2D</span><span aria-hidden="true">3D</span>
+        <span class="mode-cover" aria-hidden="true"></span>
+      </button>
+      <div id="navigation-toolbar" role="group" aria-label="View navigation">
+        <button id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out (−)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="7"/><path d="m15.5 15.5 5.5 5.5M7 10h6"/>
+          </svg>
+        </button>
+        <button id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in (+)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="7"/><path d="m15.5 15.5 5.5 5.5M7 10h6M10 7v6"/>
+          </svg>
+        </button>
+        <button id="view-fit" type="button" aria-label="Fit document" title="Fit document (F)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="7"/><path d="m15.5 15.5 5.5 5.5M7 9V7h2M11 7h2v2M13 11v2h-2M9 13H7v-2"/>
+          </svg>
+        </button>
+      </div>
+      <div id="three-navigation" role="group" aria-label="3D view controls" data-pcb-only hidden>
+        <div class="three-presets" role="group" aria-label="View direction">
+          <button id="three-top" type="button" title="Top view" disabled>Top</button>
+          <button id="three-bottom" type="button" title="Bottom view" disabled>Bottom</button>
+        </div>
+        <div class="rotation-pad" role="group" aria-label="Rotate board">
+          <button id="three-rotate-up" type="button" aria-label="Rotate up" title="Rotate up (5°; hold to rotate)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
+          </button>
+          <button id="three-rotate-left" type="button" aria-label="Rotate left" title="Rotate left (5°; hold to rotate)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+          </button>
+          <button id="three-rotate-right" type="button" aria-label="Rotate right" title="Rotate right (5°; hold to rotate)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+          </button>
+          <button id="three-rotate-down" type="button" aria-label="Rotate down" title="Rotate down (5°; hold to rotate)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-7-7 7 7 7-7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="view" role="tabpanel" aria-label="Document view" tabindex="0">
+        <div id="empty">Open Altium or KiCad documents or STEP models<br>or drop them here</div>
+        <div id="three-view" hidden></div>
+        <div id="net-labels" aria-hidden="true"></div>
+        <div id="measure-label"></div>
+        <div id="selection-rectangle" aria-hidden="true" hidden></div>
+        <div id="toast"></div>
+        <div id="busy" role="status" aria-live="polite">Rendering…</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="/static/viewer.js"></script>
+</body></html>
