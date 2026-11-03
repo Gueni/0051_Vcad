@@ -33,6 +33,11 @@ class ViewerLifetime:
                 self._deadline = time.monotonic() + self._grace
                 self._condition.notify_all()
 
+    @property
+    def connected(self):
+        with self._condition:
+            return bool(self._connections)
+
     def close(self):
         with self._condition:
             self.stopping.set()

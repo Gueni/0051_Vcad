@@ -16,5 +16,5 @@ for source, target in (
     ("license.occt-import-js.txt", "OCCT-IMPORT-LICENSE.txt"),
     ("license.occt.txt", "OCCT-LICENSE.txt"),
 ):
-    shutil.copyfile(package / "dist" / source, ROOT / "cadview/static" / target)
+    shutil.copyfile(package / "dist" / source, ROOT / "vcad/static" / target)
 print(f"Bundled occt-import-js {actual}")

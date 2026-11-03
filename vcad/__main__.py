@@ -1,4 +1,4 @@
-"""Run the viewer with ``python -m cadview``."""
+"""Run the viewer with ``python -m vcad``."""
 
 from .cli import main
 

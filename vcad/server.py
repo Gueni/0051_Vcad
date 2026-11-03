@@ -2,6 +2,7 @@
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
+import hmac
 import json
 from pathlib import Path
 import select
@@ -10,6 +11,7 @@ import threading
 import time
 import urllib.parse
 
+from .documents import Inbox
 from .rendering import render_file
 from .session_lifetime import ViewerLifetime
 from .web_geometry import MAX_INPUT, prepare_geometry
@@ -49,6 +51,9 @@ class ViewerServer(ThreadingHTTPServer):
     def __init__(self, address, handler, *, grace=3.0):
         super().__init__(address, handler)
         self.viewer_lifetime = ViewerLifetime(self.shutdown, grace)
+        self.inbox = Inbox()  # documents for the viewer page to fetch
+        self.token = None  # set when later launches may hand documents over (/open)
+        self.open_viewer = None
 
     def shutdown(self):
         self.viewer_lifetime.close()
@@ -61,8 +66,6 @@ class ViewerServer(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    initial: dict | None = None  # board given on the command line, served once
-
     def log_message(self, *_):  # keep the console quiet
         pass
 
@@ -82,11 +85,11 @@ class Handler(BaseHTTPRequestHandler):
             self._viewer_session()
         elif url.path in STATIC_ROUTES:
             filename, content_type = STATIC_ROUTES[url.path]
-            body = files("cadview").joinpath("static", filename).read_bytes()
+            body = files("vcad").joinpath("static", filename).read_bytes()
             self._send(200, body, content_type)
         elif url.path == "/initial":
-            data, Handler.initial = Handler.initial, None
-            self._json(200, data or {})
+            documents, errors = self.server.inbox.take()
+            self._json(200, {"documents": documents, "errors": errors})
         else:
             self._send(404, b"not found", "text/plain")
 
@@ -115,12 +118,19 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b"retry: 500\ndata: connected\n\n")
             self.wfile.flush()
             heartbeat = time.monotonic() + 5
+            inbox = getattr(self.server, "inbox", None)
+            seen = inbox.version if inbox else 0
             while not lifetime.stopping.is_set():
                 readable, _, _ = select.select([self.connection], [], [], .5)
                 # This is a one-way HTTP stream. Readability means EOF or an
                 # unexpected pipelined request; neither keeps a viewer alive.
                 if readable:
                     break
+                if inbox and inbox.version != seen:
+                    # Another launch handed over documents; the page fetches /initial.
+                    seen = inbox.version
+                    self.wfile.write(b"event: open\ndata: documents\n\n")
+                    self.wfile.flush()
                 if time.monotonic() >= heartbeat:
                     self.wfile.write(b": alive\n\n")
                     self.wfile.flush()
@@ -130,8 +140,30 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             lifetime.disconnect(connection)
 
+    def _open(self) -> None:
+        """Documents from a later Vcad launch (Explorer "Open with")."""
+        token = getattr(self.server, "token", None)
+        if (not token or self.headers.get("Host") != f"127.0.0.1:{self.server.server_address[1]}"
+                or not hmac.compare_digest(self.headers.get("X-Vcad-Token", ""), token)):
+            self._json(403, {"error": "Documents must be opened by Vcad."})
+            return
+        lifetime = self.server.viewer_lifetime
+        if lifetime.stopping.is_set():
+            self._json(503, {"error": "Vcad is closing"})
+            return
+        length = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(min(length, 1 << 20)) or b"{}")
+        paths = [Path(path) for path in body.get("paths", [])]
+        self.server.inbox.add(paths)
+        self._json(200, {"queued": len(paths)})
+        if not lifetime.connected and self.server.open_viewer:
+            self.server.open_viewer()  # The viewer window was closed; open a new one.
+
     def do_POST(self) -> None:
         url = urllib.parse.urlparse(self.path)
+        if url.path == "/open":
+            self._open()
+            return
         if url.path == "/shutdown":
             host = f"127.0.0.1:{self.server.server_address[1]}"
             if (self.headers.get("Host") != host or self.headers.get("Origin") != f"http://{host}"

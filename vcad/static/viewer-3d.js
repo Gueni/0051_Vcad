@@ -193,6 +193,10 @@ export class Board3D {
       light.shadow.bias = -0.00015; light.shadow.normalBias = 0.025;
       this.scene.add(light, light.target);
     }
+    // Pre-tessellated multi-part models announce their extent so the view can
+    // be framed before every part has loaded.
+    this.modelBounds = model.bounds ? new THREE.Box3(new THREE.Vector3(...model.bounds[0]),
+      new THREE.Vector3(...model.bounds[1])) : null;
     const surfaceBounds = new THREE.Box2().setFromPoints(model.board.flatMap(part =>
       part.outline.map(point => new THREE.Vector2(...point))));
     const surfaceSize = surfaceBounds.getSize(new THREE.Vector2());
@@ -251,6 +255,7 @@ export class Board3D {
     this.controls.enabled = true;
     this.resize();
     this.restoreCamera(state);
+    if (this.modelBounds && !state) this.fit('iso');
     this.updateBodies(bodies);
     this.loading = Promise.all([steps, this.loadSurfaces(sourceSVG, model, generation)]).then(() => {
       if (generation !== this.generation) return;
@@ -411,6 +416,7 @@ export class Board3D {
   updateBounds() {
     const bounds = new THREE.Box3();
     this.pickMeshes.filter(mesh => mesh.visible).forEach(mesh => bounds.expandByObject(mesh));
+    if (this.modelBounds && !this.ready) bounds.union(this.modelBounds);
     this.bounds = bounds;
     this.center = bounds.getCenter(new THREE.Vector3());
     this.radius = Math.max(bounds.getSize(new THREE.Vector3()).length() / 2, 0.1);

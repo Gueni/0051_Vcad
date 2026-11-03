@@ -128,7 +128,7 @@ def prepare_geometry(body, stopping=None):
             source, target = Path(tmp) / "input.json", Path(tmp) / "scene.bin"
             source.write_bytes(body)
             command = ([sys.executable] if getattr(sys, "frozen", False) else
-                       [sys.executable, "-m", "cadview.cli"])
+                       [sys.executable, "-m", "vcad.cli"])
             try:
                 result = _run_worker(
                     [*command, "--web-geometry-worker", str(source), str(target)],

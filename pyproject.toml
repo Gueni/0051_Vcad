@@ -1,5 +1,5 @@
 [project]
-name = "cadview"
+name = "vcad"
 version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -7,27 +7,25 @@ dependencies = [
     "altium-monkey>=2026.9.22",
     "freetype-py>=2.5.1",
     "numpy>=1.26,<3",
-    "cryptography>=3.1",  # pypdf: AES-encrypted 3D PDFs
-    "pypdf>=5,<7",
-    "pywin32>=306; sys_platform == 'win32'",
     "pyside6-essentials>=6.8,<7",
     "sexpdata>=1.0.2,<2",
     "shapely>=2.1,<3",
+    "sldkit>=0.3.1,<0.4",  # PolyForm-Noncommercial-1.0.0
     "zstandard>=0.25,<1",
 ]
 
 [project.scripts]
-cadview = "cadview.cli:main"
+vcad = "vcad.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["cadview*"]
+include = ["vcad*"]
 
 [tool.setuptools.package-data]
-cadview = ["static/*.html", "static/*.css", "static/*.js", "static/*.txt", "static/*.wasm"]
+vcad = ["static/*.html", "static/*.css", "static/*.js", "static/*.txt", "static/*.wasm"]
 
 [dependency-groups]
 build = [

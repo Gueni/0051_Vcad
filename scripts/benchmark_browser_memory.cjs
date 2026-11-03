@@ -8,7 +8,7 @@ const { writeFileSync } = require('node:fs');
 async function main() {
   if (!process.argv[2]) throw new Error('Provide a PCB document path');
   const path = resolve(process.argv[2]), root = process.env.PCB_BENCH_ROOT || resolve(__dirname, '..');
-  const server = spawn(resolve(root, '.venv/bin/python'), ['-B', '-u', resolve(root, 'cadview.py'), '--no-open'], { cwd: root });
+  const server = spawn(resolve(root, '.venv/bin/python'), ['-B', '-u', resolve(root, 'vcad.py'), '--no-open'], { cwd: root });
   let browser;
   try {
     const origin = await new Promise((done, reject) => {

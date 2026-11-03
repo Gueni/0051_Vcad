@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>cadview</title>
+<html><head><meta charset="utf-8"><title>Vcad</title>
 <link rel="stylesheet" href="/static/viewer.css"></head><body>
 <div id="app">
   <div id="panel">
     <div>
-      <h1>cadview</h1>
-      <input id="file" type="file" accept=".PcbDoc,.pcbdoc,.SchDoc,.schdoc,.kicad_pcb,.kicad_sch,.sch,.step,.stp,.sldprt,.sldasm,.pdf" multiple hidden>
+      <h1>Vcad</h1>
+      <input id="file" type="file" accept=".PcbDoc,.pcbdoc,.SchDoc,.schdoc,.kicad_pcb,.kicad_sch,.sch,.step,.stp,.sldprt,.sldasm,.plecs,.zip,.gbr,.ger,.pho,.art,.gtl,.gbl,.gto,.gbo,.gts,.gbs,.gtp,.gbp,.gko,.gml,.g1,.g2,.g3,.g4,.gp1,.gp2,.gm1,.gm2,.drl,.xln,.txt" multiple hidden>
       <button class="primary" id="open">Open files…</button>
       <div id="filename">No document loaded</div>
       <div id="warnings" role="status" hidden></div>
@@ -122,7 +122,7 @@
         </div>
       </div>
       <div id="view" role="tabpanel" aria-label="Document view" tabindex="0">
-        <div id="empty">Open Altium or KiCad documents, STEP or SolidWorks models, or 3D PDFs<br>or drop them here</div>
+        <div id="empty">Open Altium, KiCad, Gerber or PLECS documents, or STEP or SolidWorks models<br>or drop them here</div>
         <div id="three-view" hidden></div>
         <div id="net-labels" aria-hidden="true"></div>
         <div id="measure-label"></div>

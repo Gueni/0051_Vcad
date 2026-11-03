@@ -41,7 +41,7 @@ function schematic() {
 async function main() {
   const root = resolve(__dirname, '..');
   const server = spawn(process.env.PCB_TEST_PYTHON || resolve(root, '.venv/bin/python'),
-    ['-B', '-u', resolve(root, 'cadview.py'), '--no-open'], { cwd: root });
+    ['-B', '-u', resolve(root, 'vcad.py'), '--no-open'], { cwd: root });
   let browser;
   try {
     const origin = await new Promise((done, reject) => {

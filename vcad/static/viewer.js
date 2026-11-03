@@ -8,7 +8,7 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
   schematicComponents as findSchematicComponents, reverseNets } from './cross-probe.js';
 
 (function () {
-  trackViewerSession();
+  trackViewerSession(() => loadInitial());
   const $ = id => document.getElementById(id);
   const view = $('view'), layersEl = $('layers'), readout = $('readout'), label = $('measure-label');
   const NS = 'http://www.w3.org/2000/svg';
@@ -273,9 +273,34 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
     else updateTabs();
     if (activeBoard) $('board-tab-' + activeBoard.id).focus();
   }
+  // Gerber/drill files chosen together form one board; report and drill .txt
+  // files ride along only with them (the server ignores what it can't read).
+  const gerberExtension = /^(gbr|ger|pho|art|gtl|gbl|gto|gbo|gts|gbs|gtp|gbp|gko|gml|g\d+|gp\d+|gm\d+|cmp|sol|plc|pls|stc|sts|crc|crs|drl|xln|exc|drd)$/;
+  const gerberCompanion = /^(txt|nc|tap|apr|apr_lib|rep|rul|extrep|drr|ldp|csv)$/;
+  async function gerberBundle(files) {
+    const entries = await Promise.all(files.map(file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ name: file.name, data: reader.result.split(',')[1] || '' });
+      reader.onerror = () => reject(reader.error); reader.readAsDataURL(file);
+    })));
+    const stem = files.map(file => file.name.split('.')[0]).sort((a, b) => a.length - b.length)[0] || 'Gerber';
+    return new File([JSON.stringify({ files: entries })], `${stem}.gerbers`);
+  }
   function openFiles(files) {
+    files = [...files];
+    const extensionOf = file => file.name.split('.').at(-1).toLowerCase();
+    const gerbers = files.filter(file => gerberExtension.test(extensionOf(file)));
+    if (gerbers.length) {
+      const set = files.filter(file => gerbers.includes(file) || gerberCompanion.test(extensionOf(file)));
+      files = files.filter(file => !set.includes(file));
+      gerberBundle(set).then(bundle => {
+        const board = createBoard(bundle);
+        activateBoard(board);
+        renderBoard(board);
+      }).catch(error => toast('Could not read the Gerber files: ' + error.message));
+    }
     for (const file of files) {
-      const extension = file.name.split('.').at(-1).toLowerCase();
+      const extension = extensionOf(file);
       if (extension === 'step' || extension === 'stp') {
         const board = createBoard(file);
         board.mode = '3d';
@@ -284,7 +309,7 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
         continue;
       }
       const board = createBoard(file);
-      if (['sldprt', 'sldasm', 'pdf'].includes(extension)) board.mode = '3d';
+      if (['sldprt', 'sldasm'].includes(extension)) board.mode = '3d';
       activateBoard(board);
       renderBoard(board);
     }
@@ -455,7 +480,7 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
         const failures = failed.length ? board.scene3d.standalone ?
           ` · ${failed.length} failed.\n${failed.join('\n')}` :
           ` · ${failed.length} unavailable; using body outlines where available.\n${failed.join('\n')}` : '';
-        $('step-status').textContent = total ? `STEP models: ${loaded}/${total} loaded${failures}` : '';
+        $('step-status').textContent = total ? `${board.scene3d.standalone ? 'Models' : 'STEP models'}: ${loaded}/${total} loaded${failures}` : '';
       });
       threeViewer.show(board.scene3d, board.camera3d, bodyEdits(board), board.svg);
       threeBoard = board;
@@ -1543,14 +1568,21 @@ import { indexLayout, indexSchematic, matchingComponents, matchingNets,
     updateNetLabels();
   }).observe(view);
 
-  // ------------------------------------------------------------ board passed on the command line
-  fetch('/initial').then(r => r.ok ? r.json() : null).then(d => {
-    const documents = d?.documents || (d?.svg ? [d] : []), activate = !activeBoard, opened = [];
-    for (const data of documents) {
-      if (!data.svg) continue;
-      const file = new File([Uint8Array.from(atob(data.source || ''), c => c.charCodeAt(0))], data.name);
-      const board = createBoard(file); opened.push(board); show(board, data);
-    }
-    if (activate && opened.length) activateBoard(opened.at(-1)); else updateTabs();
-  }).catch(e => toast('Could not load the initial document: ' + e.message));
+  // ------------------------------------------- documents from the command line or "Open with"
+  function loadInitial() {
+    const empty = $('empty'), idle = empty.innerHTML;
+    const waiting = setTimeout(() => { empty.textContent = 'Opening documents…'; }, 300);
+    return fetch('/initial').then(r => r.ok ? r.json() : null).then(d => {
+      const opened = [];
+      for (const data of d?.documents || []) {
+        if (!data.svg) continue;
+        const file = new File([Uint8Array.from(atob(data.source || ''), c => c.charCodeAt(0))], data.file_name || data.name);
+        const board = createBoard(file); opened.push(board); show(board, data);
+      }
+      if (d?.errors?.length) toast('Could not open ' + d.errors.join('; '));
+      if (opened.length) activateBoard(opened.at(-1)); else updateTabs();
+    }).catch(e => toast('Could not load the documents: ' + e.message))
+      .finally(() => { clearTimeout(waiting); empty.innerHTML = idle; });
+  }
+  loadInitial();
 })();

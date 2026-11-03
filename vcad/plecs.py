@@ -19,9 +19,9 @@ _TOKEN = re.compile(r'"(?:[^"\\]|\\.)*"|\[[^\]]*\]|[{}]|[^\s{}"\[\]]+')
 class Block(dict):
     """A PLECS block: scalar fields in the mapping, child blocks in ``children``."""
 
-    def __init__(self, kind):
+    def __init__(self, kind, label=""):
         super().__init__()
-        self.kind, self.children = kind, []
+        self.kind, self.children, self.label = kind, [], label
 
     def blocks(self, kind):
         return [child for child in self.children if child.kind == kind]
@@ -50,7 +50,8 @@ def parse(text: str) -> Block:
         if tokens == ["}"]:
             current = stack.pop() if stack else root
         elif tokens[-1] == "{" and len(tokens) == 2:
-            child = Block(tokens[0])
+            # Configurations interleave each Name with its Schematic.
+            child = Block(tokens[0], current.get("Name", ""))
             current.children.append(child)
             stack.append(current)
             current = child
@@ -70,14 +71,23 @@ def parameters(component):
 
 
 ROTATION = {"up": 0, "right": 90, "down": 180, "left": 270}
+# Direction is relative to each block's library orientation: directional signal
+# blocks are drawn unrotated when they point right, these blocks when they point up.
+UPRIGHT = {"Subsystem", "ConfigurableSubsystem", "Reference", "Scope", "Sum", "Product", "LogicalOperator",
+           "Display", "Math", "PeriodicAverage", "XYPlot", "Fourier"}
 
 
-def transform(component, point):
+def rotation(component, upright=True):
+    base = 0 if upright or component.get("Type") in UPRIGHT or component.blocks("Terminal") else 90
+    return (ROTATION.get(component.get("Direction", "up"), 0) - base) % 360
+
+
+def transform(component, point, upright=True):
     """Map a component-local point to schematic coordinates."""
     x, y = point
     if component.get("Flipped") == "on":
         y = -y  # Flipping keeps a block's signal direction and swaps its sides.
-    angle = math.radians(ROTATION.get(component.get("Direction", "up"), 0))
+    angle = math.radians(rotation(component, upright))
     cos, sin = round(math.cos(angle)), round(math.sin(angle))
     px, py = component["Position"][0]
     return px + x * cos - y * sin, py + x * sin + y * cos
@@ -142,6 +152,7 @@ class _Sheet:
             for name, terminal, end in self.endpoints(connection):
                 role = ("out" if end == "src" else "in") if signal else "wire"
                 self.roles.setdefault(name, {})[terminal] = role
+        self.upright = {name: "wire" in self.roles.get(name, {}).values() for name in self.components}
         self.positions = {name: self.terminal_positions(component) for name, component in self.components.items()}
 
     @staticmethod
@@ -171,6 +182,7 @@ class _Sheet:
 
     def terminal_positions(self, component):
         explicit = component.blocks("Terminal")
+        upright = self.upright[component.get("Name", "")]
         if explicit:
             return {index: transform(component, terminal["Position"][0])
                     for index, terminal in enumerate(explicit, 1) if terminal.get("Position")}
@@ -190,7 +202,7 @@ class _Sheet:
             sides = [(0, y0), (0, y1), (x0, 0), (x1, 0)]
         for slot, number in enumerate(wires):
             local[number] = sides[slot % len(sides)]
-        return {number: transform(component, point) for number, point in local.items()}
+        return {number: transform(component, point, upright) for number, point in local.items()}
 
     def terminal(self, name, number):
         return self.positions.get(name, {}).get(number)
@@ -275,7 +287,8 @@ class _Sheet:
         values = parameters(component)
         x0, y0, x1, y1 = self.frame(component)
         px, py = component["Position"][0]
-        angle = ROTATION.get(component.get("Direction", "up"), 0)
+        upright = self.upright[name]
+        angle = rotation(component, upright)
         flip = " scale(1,-1)" if component.get("Flipped") == "on" else ""
         group = element(parent, "g", id=identifier)
         self.renderer.components.append({"id": identifier, "name": name or kind, "elements": [identifier],
@@ -316,7 +329,7 @@ class _Sheet:
                 caption = name if component.get("Show") != "on" else None
             else:
                 caption = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", kind)
-        corners = [transform(component, point) for point in ((x0, y0), (x1, y0), (x0, y1), (x1, y1))]
+        corners = [transform(component, point, upright) for point in ((x0, y0), (x1, y0), (x0, y1), (x1, y1))]
         left, top = min(x for x, _ in corners), min(y for _, y in corners)
         right, bottom = max(x for x, _ in corners), max(y for _, y in corners)
         for x, y in corners:
@@ -380,11 +393,10 @@ def _schematics(block, title):
             yield schematic, name
             yield from _schematics(schematic, name)
         for configurations in component.blocks("Configurations"):
-            for configuration in configurations.children:
-                label = f"{name} [{configuration.get('Name', configuration.kind)}]"
-                for schematic in configuration.blocks("Schematic"):
-                    yield schematic, label
-                    yield from _schematics(schematic, label)
+            for schematic in configurations.blocks("Schematic"):
+                label = f"{name} [{schematic.label.strip()}]" if schematic.label.strip() else name
+                yield schematic, label
+                yield from _schematics(schematic, label)
 
 
 def render_plecs(path) -> dict:
